@@ -21,7 +21,7 @@ class EncryptedFrame {
 	func encrypt(clearTextFrame: ClearTextFrame) throws {
 		let clearTextBytes = Array(clearTextFrame.message)
 		
-		let aes = try AES(key: key, blockMode: CTR(iv: iv),padding: .noPadding)
+		let aes = try AES(key: key, blockMode: CTR(iv: iv),padding: .pkcs7)
 		
 		let encryptedBytes = try aes.encrypt(clearTextBytes)
 		encryptedData = Data(encryptedBytes)
@@ -31,7 +31,7 @@ class EncryptedFrame {
 	}
 	
 	private func calculateMIC() {
-		let hmac = HMAC(key: key, variant: .sha256)
+		let hmac = HMAC(key: key, variant: .sha2(.sha256))
 		
 		let macBytes = try! hmac.authenticate(Array(encryptedData))
 		
@@ -42,7 +42,7 @@ class EncryptedFrame {
 		return (encryptedData, mic ?? Data())
 	}
 	
-	func decryptAndVerify(receivedData: Data, receivedMIC: Data) throws -> Data {
+	func decryptAndVerify(receivedData: Data, receivedMIC: Data, iv: Array<UInt8>) throws -> Data {
 		let receivedBytes = Array(receivedData)
 		
 		let aes = try AES(key: key, blockMode: CTR(iv: iv), padding: .noPadding)
@@ -50,7 +50,7 @@ class EncryptedFrame {
 		
 		let decryptedData = Data(decryptedBytes)
 		
-		let calculatedMIC = try HMAC(key: key, variant: .sha256).authenticate(receivedBytes)
+		let calculatedMIC = try HMAC(key: key, variant: .sha2(.sha256)).authenticate(receivedBytes)
 		
 		guard Data(calculatedMIC) == receivedMIC else {
 			throw CCMError.integrityCheckFailed

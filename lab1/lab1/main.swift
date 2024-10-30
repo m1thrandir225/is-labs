@@ -29,7 +29,7 @@ func main() {
 		let receivedData = encryptedData
 		let receivedMIC = mic
 
-		let decryptedMessageData = try encryptedFrame.decryptAndVerify(receivedData: receivedData, receivedMIC: receivedMIC)
+		let decryptedMessageData = try encryptedFrame.decryptAndVerify(receivedData: receivedData, receivedMIC: receivedMIC, iv: Array(iv))
 		let decryptedMessageHex = decryptedMessageData.toHexString()
 		let decryptedMessageString = String(decoding: decryptedMessageData, as: UTF8.self)
 		
