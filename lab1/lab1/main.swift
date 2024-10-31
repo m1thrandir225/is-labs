@@ -33,22 +33,10 @@ func main() {
 		print (separator: "\n")
 		
 		//'Receive' frame and decode it
-		let receivedFrame = try JSONDecoder().decode(Data.self, from: receivedFrameJSON)
-		print("Received Frame (Hex): \(receivedFrame.toHexString())")
-		print (separator: "\n")
-		
-		//Split the frame into data and mic
-		let (receivedData, receivedMIC) = splitFrame(frame: receivedFrame)
-		print("Received Data: \(receivedData.toHexString())")
-		print("Received MIC: \(receivedMIC!.toHexString())")
-		print (separator: "\n")
+		let receivedFrame = try JSONDecoder().decode(EncryptedFrame.self, from: receivedFrameJSON)
 	
 		//Decrypt the data and verify mic
-		let decryptedFrame = try encryptedFrame.decryptAndVerify(
-			key: Array(key),
-			receivedData: receivedData,
-			receivedMIC: receivedMIC!
-		)
+		let decryptedFrame = try receivedFrame.decryptAndVerify(key: Array(key))
 		
 		let decryptedMessageHex = decryptedFrame.message.toHexString()
 		let decryptedMessageString = String(decoding: decryptedFrame.message, as: UTF8.self)

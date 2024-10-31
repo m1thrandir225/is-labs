@@ -28,21 +28,17 @@ public class EncryptedFrame : Codable {
 
 	func sendFrame()  throws -> Data {
 		let encoder = JSONEncoder()
-		var frame = encryptedData
-		frame.append(mic ?? Data())
-		
-		let json = try encoder.encode(frame)
+	
+		let json = try encoder.encode(self)
 		
 		return json
 	}
-	
+
 
 	func decryptAndVerify(
-		key: Array<UInt8>,
-		receivedData: Data,
-		receivedMIC: Data
+		key: Array<UInt8>
 	) throws -> ClearTextFrame {
-		let receivedBytes = Array(receivedData)
+		let receivedBytes = Array(encryptedData)
 		
 		let aes = try AES(key: key, blockMode: CTR(iv: iv), padding: .pkcs7)
 		let decryptedBytes = try aes.decrypt(receivedBytes)
@@ -51,7 +47,7 @@ public class EncryptedFrame : Codable {
 		
 		let calculatedMIC = try HMAC(key: key, variant: .sha2(.sha256)).authenticate(receivedBytes)
 		
-		guard Data(calculatedMIC) == receivedMIC else {
+		guard Data(calculatedMIC) == mic else {
 			throw CCMError.integrityCheckFailed
 		}
 		
