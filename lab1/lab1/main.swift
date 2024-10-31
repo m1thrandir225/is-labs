@@ -18,20 +18,40 @@ func main() {
 		
 		print("Original Message (Hex): \(clearText.message.toHexString())")
 		print("Original Message (String): \(message)")
+		print (separator: "\n")
 		
-		let encryptedFrame = EncryptedFrame(key: key, iv: iv)
-		try encryptedFrame.encrypt(clearTextFrame: clearText)
+		//Encrypt frame
+		let encryptedFrame = try clearText.encrypt(key: Array(key), iv: iv)
+		print("Sent Encrypted Data (Hex): \(encryptedFrame.encryptedData.toHexString())")
+		print("Sent MIC (Hex): \(encryptedFrame.mic!.toHexString())")
+		print (separator: "\n")
 
-		let (encryptedData, mic) = encryptedFrame.sendFrame()
-		print("Sent Encrypted Data (Hex): \(encryptedData.toHexString())")
-		print("Sent MIC (Hex): \(mic.toHexString())")
-
-		let receivedData = encryptedData
-		let receivedMIC = mic
-
-		let decryptedMessageData = try encryptedFrame.decryptAndVerify(receivedData: receivedData, receivedMIC: receivedMIC, iv: Array(iv))
-		let decryptedMessageHex = decryptedMessageData.toHexString()
-		let decryptedMessageString = String(decoding: decryptedMessageData, as: UTF8.self)
+		
+		//'Send' frame in JSON format
+		let receivedFrameJSON = try encryptedFrame.sendFrame()
+		print("Received Frame: \(String(decoding: receivedFrameJSON, as: UTF8.self))")
+		print (separator: "\n")
+		
+		//'Receive' frame and decode it
+		let receivedFrame = try JSONDecoder().decode(Data.self, from: receivedFrameJSON)
+		print("Received Frame (Hex): \(receivedFrame.toHexString())")
+		print (separator: "\n")
+		
+		//Split the frame into data and mic
+		let (receivedData, receivedMIC) = splitFrame(frame: receivedFrame)
+		print("Received Data: \(receivedData.toHexString())")
+		print("Received MIC: \(receivedMIC!.toHexString())")
+		print (separator: "\n")
+	
+		//Decrypt the data and verify mic
+		let decryptedFrame = try encryptedFrame.decryptAndVerify(
+			key: Array(key),
+			receivedData: receivedData,
+			receivedMIC: receivedMIC!
+		)
+		
+		let decryptedMessageHex = decryptedFrame.message.toHexString()
+		let decryptedMessageString = String(decoding: decryptedFrame.message, as: UTF8.self)
 		
 		print("Decrypted Message (Hex): \(decryptedMessageHex)")
 		print("Decrypted Message (String): \(decryptedMessageString)")

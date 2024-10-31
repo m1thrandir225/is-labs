@@ -31,7 +31,18 @@ func generateKeyAndIV() -> (key: Data, iv: Data) {
 	var ivData = Data(count: 16)
 	let _ = ivData.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 16, $0.baseAddress!) }
 	print("Generated IV (Hex): \(ivData.map { String(format: "%02hhx", $0) }.joined())")
+	print (separator: "\n")
 	
 	return (keyData, ivData)
 
 }
+
+func splitFrame(frame: Data) -> (receivedData: Data, receivedMIC: Data?) {
+	let micLength = 32
+	
+	let encryptedData = frame.prefix(frame.count - micLength)
+	let receivedMIC = frame.suffix(micLength)
+	
+	return (encryptedData, receivedMIC)
+}
+

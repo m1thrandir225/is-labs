@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0E9C16E22CD2639D00F2E70B /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0E9C16E12CD2639D00F2E70B /* CryptoSwift */; };
+		0E451D362CD3951A00252882 /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0E451D352CD3951A00252882 /* CryptoSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		0E9C16C62CD2608700F2E70B /* CopyFiles */ = {
+		0E451D202CD394D200252882 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -23,11 +23,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0E9C16C82CD2608700F2E70B /* lab1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lab1; sourceTree = BUILT_PRODUCTS_DIR; };
+		0E451D222CD394D200252882 /* lab1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lab1; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0E9C16CA2CD2608700F2E70B /* lab1 */ = {
+		0E451D242CD394D200252882 /* lab1 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = lab1;
 			sourceTree = "<group>";
@@ -35,29 +35,29 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		0E9C16C52CD2608700F2E70B /* Frameworks */ = {
+		0E451D1F2CD394D200252882 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0E9C16E22CD2639D00F2E70B /* CryptoSwift in Frameworks */,
+				0E451D362CD3951A00252882 /* CryptoSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0E9C16BF2CD2608700F2E70B = {
+		0E451D192CD394D200252882 = {
 			isa = PBXGroup;
 			children = (
-				0E9C16CA2CD2608700F2E70B /* lab1 */,
-				0E9C16C92CD2608700F2E70B /* Products */,
+				0E451D242CD394D200252882 /* lab1 */,
+				0E451D232CD394D200252882 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		0E9C16C92CD2608700F2E70B /* Products */ = {
+		0E451D232CD394D200252882 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0E9C16C82CD2608700F2E70B /* lab1 */,
+				0E451D222CD394D200252882 /* lab1 */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -65,68 +65,68 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0E9C16C72CD2608700F2E70B /* lab1 */ = {
+		0E451D212CD394D200252882 /* lab1 */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0E9C16CF2CD2608700F2E70B /* Build configuration list for PBXNativeTarget "lab1" */;
+			buildConfigurationList = 0E451D292CD394D200252882 /* Build configuration list for PBXNativeTarget "lab1" */;
 			buildPhases = (
-				0E9C16C42CD2608700F2E70B /* Sources */,
-				0E9C16C52CD2608700F2E70B /* Frameworks */,
-				0E9C16C62CD2608700F2E70B /* CopyFiles */,
+				0E451D1E2CD394D200252882 /* Sources */,
+				0E451D1F2CD394D200252882 /* Frameworks */,
+				0E451D202CD394D200252882 /* CopyFiles */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				0E9C16CA2CD2608700F2E70B /* lab1 */,
+				0E451D242CD394D200252882 /* lab1 */,
 			);
 			name = lab1;
 			packageProductDependencies = (
-				0E9C16E12CD2639D00F2E70B /* CryptoSwift */,
+				0E451D352CD3951A00252882 /* CryptoSwift */,
 			);
 			productName = lab1;
-			productReference = 0E9C16C82CD2608700F2E70B /* lab1 */;
+			productReference = 0E451D222CD394D200252882 /* lab1 */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		0E9C16C02CD2608700F2E70B /* Project object */ = {
+		0E451D1A2CD394D200252882 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1610;
 				LastUpgradeCheck = 1610;
 				TargetAttributes = {
-					0E9C16C72CD2608700F2E70B = {
+					0E451D212CD394D200252882 = {
 						CreatedOnToolsVersion = 16.1;
 					};
 				};
 			};
-			buildConfigurationList = 0E9C16C32CD2608700F2E70B /* Build configuration list for PBXProject "lab1" */;
+			buildConfigurationList = 0E451D1D2CD394D200252882 /* Build configuration list for PBXProject "lab1" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = 0E9C16BF2CD2608700F2E70B;
+			mainGroup = 0E451D192CD394D200252882;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				0E9C16E02CD2639D00F2E70B /* XCRemoteSwiftPackageReference "CryptoSwift" */,
+				0E451D342CD3951A00252882 /* XCRemoteSwiftPackageReference "CryptoSwift" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 0E9C16C92CD2608700F2E70B /* Products */;
+			productRefGroup = 0E451D232CD394D200252882 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0E9C16C72CD2608700F2E70B /* lab1 */,
+				0E451D212CD394D200252882 /* lab1 */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
-		0E9C16C42CD2608700F2E70B /* Sources */ = {
+		0E451D1E2CD394D200252882 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -136,7 +136,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		0E9C16CD2CD2608700F2E70B /* Debug */ = {
+		0E451D272CD394D200252882 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -199,7 +199,7 @@
 			};
 			name = Debug;
 		};
-		0E9C16CE2CD2608700F2E70B /* Release */ = {
+		0E451D282CD394D200252882 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -254,7 +254,7 @@
 			};
 			name = Release;
 		};
-		0E9C16D02CD2608700F2E70B /* Debug */ = {
+		0E451D2A2CD394D200252882 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -265,7 +265,7 @@
 			};
 			name = Debug;
 		};
-		0E9C16D12CD2608700F2E70B /* Release */ = {
+		0E451D2B2CD394D200252882 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -279,20 +279,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0E9C16C32CD2608700F2E70B /* Build configuration list for PBXProject "lab1" */ = {
+		0E451D1D2CD394D200252882 /* Build configuration list for PBXProject "lab1" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				0E9C16CD2CD2608700F2E70B /* Debug */,
-				0E9C16CE2CD2608700F2E70B /* Release */,
+				0E451D272CD394D200252882 /* Debug */,
+				0E451D282CD394D200252882 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0E9C16CF2CD2608700F2E70B /* Build configuration list for PBXNativeTarget "lab1" */ = {
+		0E451D292CD394D200252882 /* Build configuration list for PBXNativeTarget "lab1" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				0E9C16D02CD2608700F2E70B /* Debug */,
-				0E9C16D12CD2608700F2E70B /* Release */,
+				0E451D2A2CD394D200252882 /* Debug */,
+				0E451D2B2CD394D200252882 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -300,7 +300,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		0E9C16E02CD2639D00F2E70B /* XCRemoteSwiftPackageReference "CryptoSwift" */ = {
+		0E451D342CD3951A00252882 /* XCRemoteSwiftPackageReference "CryptoSwift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/krzyzanowskim/CryptoSwift";
 			requirement = {
@@ -311,12 +311,12 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		0E9C16E12CD2639D00F2E70B /* CryptoSwift */ = {
+		0E451D352CD3951A00252882 /* CryptoSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 0E9C16E02CD2639D00F2E70B /* XCRemoteSwiftPackageReference "CryptoSwift" */;
+			package = 0E451D342CD3951A00252882 /* XCRemoteSwiftPackageReference "CryptoSwift" */;
 			productName = CryptoSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = 0E9C16C02CD2608700F2E70B /* Project object */;
+	rootObject = 0E451D1A2CD394D200252882 /* Project object */;
 }

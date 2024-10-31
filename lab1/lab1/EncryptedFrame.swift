@@ -7,45 +7,44 @@
 import Foundation
 import CryptoSwift
 
-class EncryptedFrame {
-	private let key: Array<UInt8>
-	private let iv: Array<UInt8>
-	private(set) var encryptedData: Data = Data()
-	private var mic: Data?
+public class EncryptedFrame : Codable {
+	public let iv: Array<UInt8>
+	public let encryptedData: Data
+	public var mic: Data?
 	
-	init(key: Data, iv: Data) {
-		self.key = Array(key)
+	init(iv: Data, encryptedData: Data, key: Array<UInt8>) {
 		self.iv = Array(iv)
+		self.encryptedData = encryptedData
+		calculateMIC(key: key)
 	}
 	
-	func encrypt(clearTextFrame: ClearTextFrame) throws {
-		let clearTextBytes = Array(clearTextFrame.message)
-		
-		let aes = try AES(key: key, blockMode: CTR(iv: iv),padding: .pkcs7)
-		
-		let encryptedBytes = try aes.encrypt(clearTextBytes)
-		encryptedData = Data(encryptedBytes)
-		
-		calculateMIC()
-		
-	}
-	
-	private func calculateMIC() {
+	private func calculateMIC(key: Array<UInt8>) {
 		let hmac = HMAC(key: key, variant: .sha2(.sha256))
 		
 		let macBytes = try! hmac.authenticate(Array(encryptedData))
 		
 		mic = Data(macBytes)
 	}
-	
-	func sendFrame() -> (Data, Data) {
-		return (encryptedData, mic ?? Data())
+
+	func sendFrame()  throws -> Data {
+		let encoder = JSONEncoder()
+		var frame = encryptedData
+		frame.append(mic ?? Data())
+		
+		let json = try encoder.encode(frame)
+		
+		return json
 	}
 	
-	func decryptAndVerify(receivedData: Data, receivedMIC: Data, iv: Array<UInt8>) throws -> Data {
+
+	func decryptAndVerify(
+		key: Array<UInt8>,
+		receivedData: Data,
+		receivedMIC: Data
+	) throws -> ClearTextFrame {
 		let receivedBytes = Array(receivedData)
 		
-		let aes = try AES(key: key, blockMode: CTR(iv: iv), padding: .noPadding)
+		let aes = try AES(key: key, blockMode: CTR(iv: iv), padding: .pkcs7)
 		let decryptedBytes = try aes.decrypt(receivedBytes)
 		
 		let decryptedData = Data(decryptedBytes)
@@ -56,7 +55,7 @@ class EncryptedFrame {
 			throw CCMError.integrityCheckFailed
 		}
 		
-		return decryptedData
+		return ClearTextFrame(message: decryptedData)
 	}
 }
 
