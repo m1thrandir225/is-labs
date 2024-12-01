@@ -8,19 +8,19 @@ import (
 )
 
 type Server struct {
-	store                 db.Store
-	authenticationManager *auth.AuthenticationManager
-	tokenMaker            auth.TokenMaker
-	config                util.Config
-	router                *gin.Engine
+	store      db.Store
+	otpService *auth.OTPService
+	tokenMaker auth.TokenMaker
+	config     util.Config
+	router     *gin.Engine
 }
 
-func NewServer(store db.Store, am *auth.AuthenticationManager, tm auth.TokenMaker, config util.Config) (*Server, error) {
+func NewServer(store db.Store, otpService *auth.OTPService, tm auth.TokenMaker, config util.Config) (*Server, error) {
 	server := &Server{
-		store:                 store,
-		authenticationManager: am,
-		tokenMaker:            tm,
-		config:                config,
+		store:      store,
+		otpService: otpService,
+		tokenMaker: tm,
+		config:     config,
 	}
 
 	server.initializeRoutes()

@@ -9,10 +9,14 @@ import (
 )
 
 type Querier interface {
+	CleanupExpiredCounters(ctx context.Context) error
+	CreateHotpCounter(ctx context.Context, arg CreateHotpCounterParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteUser(ctx context.Context, id int64) error
+	GetCurrentCounter(ctx context.Context, userID int64) (int64, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
-	UpdateUserCounter(ctx context.Context, arg UpdateUserCounterParams) error
+	GetUserById(ctx context.Context, id int64) (User, error)
+	IncreaseCounter(ctx context.Context, userID int64) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

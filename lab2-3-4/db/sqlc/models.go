@@ -4,10 +4,20 @@
 
 package db
 
+import (
+	"database/sql"
+)
+
+type HotpCounter struct {
+	UserID            int64        `json:"user_id"`
+	Counter           int64        `json:"counter"`
+	LastUsedTimestamp sql.NullTime `json:"last_used_timestamp"`
+}
+
 type User struct {
 	ID           int64  `json:"id"`
 	Email        string `json:"email"`
 	PasswordHash string `json:"password_hash"`
-	SecretKey    string `json:"secret_key"`
-	Counter      int64  `json:"counter"`
+	OtpSecret    string `json:"otp_secret"`
+	Is2faEnabled bool   `json:"is_2fa_enabled"`
 }

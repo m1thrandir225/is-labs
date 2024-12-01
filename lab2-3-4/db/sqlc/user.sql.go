@@ -13,37 +13,37 @@ const createUser = `-- name: CreateUser :one
 INSERT INTO users (
     email,
     password_hash,
-    secret_key,
-    counter
+    otp_secret,
+    is_2fa_enabled
 ) VALUES (
         ?,
         ?,
         ?,
         ?
-) RETURNING id, email, password_hash, secret_key, counter
+) RETURNING id, email, password_hash, otp_secret, is_2fa_enabled
 `
 
 type CreateUserParams struct {
 	Email        string `json:"email"`
 	PasswordHash string `json:"password_hash"`
-	SecretKey    string `json:"secret_key"`
-	Counter      int64  `json:"counter"`
+	OtpSecret    string `json:"otp_secret"`
+	Is2faEnabled bool   `json:"is_2fa_enabled"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.Email,
 		arg.PasswordHash,
-		arg.SecretKey,
-		arg.Counter,
+		arg.OtpSecret,
+		arg.Is2faEnabled,
 	)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
-		&i.SecretKey,
-		&i.Counter,
+		&i.OtpSecret,
+		&i.Is2faEnabled,
 	)
 	return i, err
 }
@@ -59,7 +59,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, secret_key, counter
+SELECT id, email, password_hash, otp_secret, is_2fa_enabled
 FROM users
 WHERE email = ?
 `
@@ -71,24 +71,27 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
-		&i.SecretKey,
-		&i.Counter,
+		&i.OtpSecret,
+		&i.Is2faEnabled,
 	)
 	return i, err
 }
 
-const updateUserCounter = `-- name: UpdateUserCounter :exec
-UPDATE users
-SET counter = ?
+const getUserById = `-- name: GetUserById :one
+SELECT id, email, password_hash, otp_secret, is_2fa_enabled
+FROM users
 WHERE id = ?
 `
 
-type UpdateUserCounterParams struct {
-	Counter int64 `json:"counter"`
-	ID      int64 `json:"id"`
-}
-
-func (q *Queries) UpdateUserCounter(ctx context.Context, arg UpdateUserCounterParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserCounter, arg.Counter, arg.ID)
-	return err
+func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserById, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.OtpSecret,
+		&i.Is2faEnabled,
+	)
+	return i, err
 }

@@ -2,8 +2,8 @@
 INSERT INTO users (
     email,
     password_hash,
-    secret_key,
-    counter
+    otp_secret,
+    is_2fa_enabled
 ) VALUES (
         ?,
         ?,
@@ -11,15 +11,15 @@ INSERT INTO users (
         ?
 ) RETURNING *;
 
+-- name: GetUserById :one
+SELECT *
+FROM users
+WHERE id = ?;
+
 -- name: GetUserByEmail :one
 SELECT *
 FROM users
 WHERE email = ?;
-
--- name: UpdateUserCounter :exec
-UPDATE users
-SET counter = ?
-WHERE id = ?;
 
 -- name: DeleteUser :exec
 DELETE FROM users

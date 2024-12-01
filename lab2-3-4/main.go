@@ -11,10 +11,10 @@ import (
 )
 
 type ginServerConfig struct {
-	Config      util.Config
-	Store       db.Store
-	authManager *auth.AuthenticationManager
-	tokenMaker  auth.TokenMaker
+	Config     util.Config
+	Store      db.Store
+	otpService *auth.OTPService
+	tokenMaker auth.TokenMaker
 }
 
 func main() {
@@ -31,14 +31,15 @@ func main() {
 	defer database.Close()
 
 	store := db.NewSQLiteStore(database)
-	manager := auth.NewAuthenticationManager()
+	otpService := auth.NewOTPService(store)
+
 	tokenMaker := auth.NewJWTMaker([]byte(config.JWTKey))
 
 	serverConfig := ginServerConfig{
-		Config:      config,
-		Store:       store,
-		authManager: manager,
-		tokenMaker:  tokenMaker,
+		Config:     config,
+		Store:      store,
+		otpService: otpService,
+		tokenMaker: tokenMaker,
 	}
 
 	runGinServer(serverConfig)
@@ -48,7 +49,7 @@ func main() {
 func runGinServer(serverConfig ginServerConfig) {
 	server, err := api.NewServer(
 		serverConfig.Store,
-		serverConfig.authManager,
+		serverConfig.otpService,
 		serverConfig.tokenMaker,
 		serverConfig.Config,
 	)

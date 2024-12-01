@@ -10,8 +10,7 @@ type JWTMaker struct {
 }
 
 type Claims struct {
-	Email         string `json:"email"`
-	TwoFAVerified bool   `json:"two_fa_verified"`
+	Email string `json:"email"`
 	jwt.StandardClaims
 }
 
@@ -19,7 +18,7 @@ func NewJWTMaker(key []byte) *JWTMaker {
 	return &JWTMaker{Key: key}
 }
 
-func (maker *JWTMaker) GenerateToken(email string, twoFAVerified bool, timeDuration time.Duration) (string, error) {
+func (maker *JWTMaker) GenerateToken(email string, timeDuration time.Duration) (string, error) {
 	expirationTime := time.Now().Add(timeDuration)
 
 	jwtClaims := jwt.StandardClaims{
@@ -30,7 +29,6 @@ func (maker *JWTMaker) GenerateToken(email string, twoFAVerified bool, timeDurat
 
 	claims := &Claims{
 		Email:          email,
-		TwoFAVerified:  twoFAVerified,
 		StandardClaims: jwtClaims,
 	}
 
