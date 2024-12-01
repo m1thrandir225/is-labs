@@ -7,6 +7,7 @@ import (
 	"log"
 	"m1thrandir225/lab-2-3-4/auth"
 	db "m1thrandir225/lab-2-3-4/db/sqlc"
+	"m1thrandir225/lab-2-3-4/mail"
 	"m1thrandir225/lab-2-3-4/util"
 	"net/http"
 	"strings"
@@ -67,6 +68,19 @@ func (server *Server) Login(ctx *gin.Context) {
 		currentCounter := uint64(currentCounterInt)
 
 		otpCode, err := auth.GenerateHOTP(user.OtpSecret, currentCounter)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+
+		otpContent := mail.GenerateOtpEmail(otpCode)
+
+		err = server.mailService.SendMail(
+			"theteam@sebastijanzindl.me",
+			user.Email,
+			"Your OTP Verification Code",
+			otpContent,
+		)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 			return
@@ -141,6 +155,19 @@ func (server *Server) Register(ctx *gin.Context) {
 	}
 
 	err = server.store.CreateHotpCounter(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	welcomeContent := mail.GenerateWelcomeEmail(user.Email)
+
+	err = server.mailService.SendMail(
+		"theteam@sebastijanzindl.me",
+		user.Email,
+		"Welcome to the team",
+		welcomeContent,
+	)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
