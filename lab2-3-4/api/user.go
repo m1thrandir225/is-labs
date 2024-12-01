@@ -24,6 +24,11 @@ type RegisterRequest struct {
 	TwoFAEnabled bool   `form:"2fa_enabled" json:"2fa_enabled" binding:"required"`
 }
 
+type RefreshTokenRequest struct {
+	AccessToken  string `form:"access_token" json:"access_token" binding:"required"`
+	RefreshToken string `form:"refresh_token" json:"refresh_token" binding:"required"`
+}
+
 type VerifyOTPRequest struct {
 	UserID  int64  `form:"user_id" json:"user_id" binding:"required"`
 	OTPCode string `form:"otp_code" json:"otp_code" binding:"required"`
@@ -234,6 +239,38 @@ func (server *Server) VerifyOTP(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, TokenPairResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+	})
+
+}
+
+func (server *Server) RefreshToken(ctx *gin.Context) {
+	var requestData RefreshTokenRequest
+
+	if err := ctx.ShouldBindJSON(&requestData); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	_, err := server.tokenMaker.ValidateToken(requestData.AccessToken)
+	if err == nil {
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	claims, err := server.tokenMaker.ValidateToken(requestData.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	newToken, err := server.tokenMaker.GenerateToken(claims.Email, server.config.AccessTokenDuration)
+	if err != nil {
+		log.Println(err)
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"access_token": newToken,
 	})
 
 }
