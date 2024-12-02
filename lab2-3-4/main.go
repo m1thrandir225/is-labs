@@ -2,13 +2,14 @@ package main
 
 import (
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"m1thrandir225/lab-2-3-4/api"
 	"m1thrandir225/lab-2-3-4/auth"
 	db "m1thrandir225/lab-2-3-4/db/sqlc"
 	"m1thrandir225/lab-2-3-4/mail"
 	"m1thrandir225/lab-2-3-4/util"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type ginServerConfig struct {
@@ -25,7 +26,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	database, err := sql.Open("sqlite3", "./sqlite.db")
+	database, err := sql.Open("sqlite3", config.DBSource)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
