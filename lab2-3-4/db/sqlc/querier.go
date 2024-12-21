@@ -6,6 +6,8 @@ package db
 
 import (
 	"context"
+
+	"m1thrandir225/lab-2-3-4/dto"
 )
 
 type Querier interface {
@@ -16,7 +18,9 @@ type Querier interface {
 	GetCurrentCounter(ctx context.Context, userID int64) (int64, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserById(ctx context.Context, id int64) (User, error)
+	GetUserRole(ctx context.Context, id int64) (dto.Role, error)
 	IncreaseCounter(ctx context.Context, userID int64) (int64, error)
+	UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -39,12 +39,10 @@ func authMiddleware(tokenMaker auth.TokenMaker) gin.HandlerFunc {
 
 		authToken := fields[1]
 		payload, err := tokenMaker.ValidateToken(authToken)
-
 		if err != nil {
 			ctx.AbortWithStatusJSON(401, errorResponse(err))
 			return
 		}
-
 		ctx.Set(authorizationPayloadKey, payload)
 		ctx.Next()
 	}

@@ -3,8 +3,10 @@ INSERT INTO users (
     email,
     password_hash,
     otp_secret,
-    is_2fa_enabled
+    is_2fa_enabled,
+    role
 ) VALUES (
+        ?,
         ?,
         ?,
         ?,
@@ -24,3 +26,9 @@ WHERE email = ?;
 -- name: DeleteUser :exec
 DELETE FROM users
 WHERE id = ?;
+
+-- name: UpdateUserRole :exec
+UPDATE users SET role = ? WHERE id = ?;
+
+-- name: GetUserRole :one
+SELECT role FROM users WHERE id = ?;

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"m1thrandir225/lab-2-3-4/dto"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -14,20 +16,23 @@ INSERT INTO users (
     email,
     password_hash,
     otp_secret,
-    is_2fa_enabled
+    is_2fa_enabled,
+    role
 ) VALUES (
         ?,
         ?,
         ?,
+        ?,
         ?
-) RETURNING id, email, password_hash, otp_secret, is_2fa_enabled
+) RETURNING id, email, password_hash, otp_secret, is_2fa_enabled, role
 `
 
 type CreateUserParams struct {
-	Email        string `json:"email"`
-	PasswordHash string `json:"password_hash"`
-	OtpSecret    string `json:"otp_secret"`
-	Is2faEnabled bool   `json:"is_2fa_enabled"`
+	Email        string   `json:"email"`
+	PasswordHash string   `json:"password_hash"`
+	OtpSecret    string   `json:"otp_secret"`
+	Is2faEnabled bool     `json:"is_2fa_enabled"`
+	Role         dto.Role `json:"role"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -36,6 +41,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.PasswordHash,
 		arg.OtpSecret,
 		arg.Is2faEnabled,
+		arg.Role,
 	)
 	var i User
 	err := row.Scan(
@@ -44,6 +50,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PasswordHash,
 		&i.OtpSecret,
 		&i.Is2faEnabled,
+		&i.Role,
 	)
 	return i, err
 }
@@ -59,7 +66,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, otp_secret, is_2fa_enabled
+SELECT id, email, password_hash, otp_secret, is_2fa_enabled, role
 FROM users
 WHERE email = ?
 `
@@ -73,12 +80,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.PasswordHash,
 		&i.OtpSecret,
 		&i.Is2faEnabled,
+		&i.Role,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, email, password_hash, otp_secret, is_2fa_enabled
+SELECT id, email, password_hash, otp_secret, is_2fa_enabled, role
 FROM users
 WHERE id = ?
 `
@@ -92,6 +100,32 @@ func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
 		&i.PasswordHash,
 		&i.OtpSecret,
 		&i.Is2faEnabled,
+		&i.Role,
 	)
 	return i, err
+}
+
+const getUserRole = `-- name: GetUserRole :one
+SELECT role FROM users WHERE id = ?
+`
+
+func (q *Queries) GetUserRole(ctx context.Context, id int64) (dto.Role, error) {
+	row := q.db.QueryRowContext(ctx, getUserRole, id)
+	var role dto.Role
+	err := row.Scan(&role)
+	return role, err
+}
+
+const updateUserRole = `-- name: UpdateUserRole :exec
+UPDATE users SET role = ? WHERE id = ?
+`
+
+type UpdateUserRoleParams struct {
+	Role dto.Role `json:"role"`
+	ID   int64    `json:"id"`
+}
+
+func (q *Queries) UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserRole, arg.Role, arg.ID)
+	return err
 }

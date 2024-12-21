@@ -20,6 +20,13 @@
             {
               "db_type": "uuid",
               "go_type": "github.com/google/uuid.UUID"
+            },
+            {
+              "column": "users.role",
+              "go_type": {
+                "type": "Role",
+                "import": "m1thrandir225/lab-2-3-4/dto"
+              }
             }
           ]
         }

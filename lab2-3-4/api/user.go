@@ -7,6 +7,7 @@ import (
 	"log"
 	"m1thrandir225/lab-2-3-4/auth"
 	db "m1thrandir225/lab-2-3-4/db/sqlc"
+	"m1thrandir225/lab-2-3-4/dto"
 	"m1thrandir225/lab-2-3-4/mail"
 	"m1thrandir225/lab-2-3-4/util"
 	"net/http"
@@ -37,6 +38,19 @@ type VerifyOTPRequest struct {
 type TokenPairResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+}
+
+type UpdateUserRoleRequest struct {
+	Role   string `form:"role" json:"role" binding:"required"`
+	UserID int64  `form:"user_id" json:"user_id" binding:"required"`
+}
+
+type GetUserRoleRequest struct {
+	UserID int64 `form:"user_id" json:"user_id" binding:"required"`
+}
+
+type GetUserRoleResponse struct {
+	Role string `json:"role"`
 }
 
 func (server *Server) Login(ctx *gin.Context) {
@@ -273,6 +287,62 @@ func (server *Server) RefreshToken(ctx *gin.Context) {
 		"access_token": newToken,
 	})
 
+}
+
+func (server *Server) UpdateUserRole(ctx *gin.Context) {
+	var updateUserRoleRequest UpdateUserRoleRequest
+
+	if err := ctx.ShouldBindJSON(&updateUserRoleRequest); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	var role dto.Role
+	err := role.Scan(updateUserRoleRequest.Role)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	args := db.UpdateUserRoleParams{
+		Role: role,
+		ID:   updateUserRoleRequest.UserID,
+	}
+	err = server.store.UpdateUserRole(ctx, args)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
+
+func (server *Server) GetUserRole(ctx *gin.Context) {
+	var getUserRoleRequest GetUserRoleRequest
+
+	if err := ctx.ShouldBindJSON(&getUserRoleRequest); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	userRole, err := server.store.GetUserRole(ctx, getUserRoleRequest.UserID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	getUserRoleResponse := GetUserRoleResponse{
+		Role: userRole.ToString(),
+	}
+
+	ctx.JSON(http.StatusOK, getUserRoleResponse)
 }
 
 func isDuplicateKeyError(err error) bool {

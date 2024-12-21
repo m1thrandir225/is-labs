@@ -6,6 +6,8 @@ package db
 
 import (
 	"database/sql"
+
+	"m1thrandir225/lab-2-3-4/dto"
 )
 
 type HotpCounter struct {
@@ -15,9 +17,10 @@ type HotpCounter struct {
 }
 
 type User struct {
-	ID           int64  `json:"id"`
-	Email        string `json:"email"`
-	PasswordHash string `json:"password_hash"`
-	OtpSecret    string `json:"otp_secret"`
-	Is2faEnabled bool   `json:"is_2fa_enabled"`
+	ID           int64    `json:"id"`
+	Email        string   `json:"email"`
+	PasswordHash string   `json:"password_hash"`
+	OtpSecret    string   `json:"otp_secret"`
+	Is2faEnabled bool     `json:"is_2fa_enabled"`
+	Role         dto.Role `json:"role"`
 }
