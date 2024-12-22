@@ -9,6 +9,17 @@ FROM resources
 WHERE id = ?
 LIMIT 1;
 
+-- name: UpdateResource :one
+UPDATE resources
+SET
+    name = ?
+WHERE id = ?
+RETURNING *;
+
+-- name: DeleteResource :exec
+DELETE FROM resources
+WHERE id = ?;
+
 -- name: ListOrganizationResources :many
 SELECT *
 FROM resources

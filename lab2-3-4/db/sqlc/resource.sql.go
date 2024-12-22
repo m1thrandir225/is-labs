@@ -32,6 +32,16 @@ func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) 
 	return i, err
 }
 
+const deleteResource = `-- name: DeleteResource :exec
+DELETE FROM resources
+WHERE id = ?
+`
+
+func (q *Queries) DeleteResource(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteResource, id)
+	return err
+}
+
 const getResource = `-- name: GetResource :one
 SELECT id, name, org_id, created_at
 FROM resources
@@ -84,4 +94,29 @@ func (q *Queries) ListOrganizationResources(ctx context.Context, orgID int64) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateResource = `-- name: UpdateResource :one
+UPDATE resources
+SET
+    name = ?
+WHERE id = ?
+RETURNING id, name, org_id, created_at
+`
+
+type UpdateResourceParams struct {
+	Name string `json:"name"`
+	ID   int64  `json:"id"`
+}
+
+func (q *Queries) UpdateResource(ctx context.Context, arg UpdateResourceParams) (Resource, error) {
+	row := q.db.QueryRowContext(ctx, updateResource, arg.Name, arg.ID)
+	var i Resource
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.OrgID,
+		&i.CreatedAt,
+	)
+	return i, err
 }

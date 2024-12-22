@@ -111,3 +111,20 @@ func (q *Queries) RemoveUserFromOrganization(ctx context.Context, arg RemoveUser
 	_, err := q.db.ExecContext(ctx, removeUserFromOrganization, arg.OrgID, arg.UserID)
 	return err
 }
+
+const updateUserOrganizationRole = `-- name: UpdateUserOrganizationRole :exec
+UPDATE user_organizations
+SET role_id = ?
+WHERE user_id = ? AND org_id = ?
+`
+
+type UpdateUserOrganizationRoleParams struct {
+	RoleID int64 `json:"role_id"`
+	UserID int64 `json:"user_id"`
+	OrgID  int64 `json:"org_id"`
+}
+
+func (q *Queries) UpdateUserOrganizationRole(ctx context.Context, arg UpdateUserOrganizationRoleParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserOrganizationRole, arg.RoleID, arg.UserID, arg.OrgID)
+	return err
+}

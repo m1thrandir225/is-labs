@@ -1,179 +1,184 @@
 package api
 
 import (
+	"database/sql"
 	"errors"
-	"m1thrandir225/lab-2-3-4/auth"
-	db "m1thrandir225/lab-2-3-4/db/sqlc"
-	"strconv"
-	"time"
-
 	"github.com/gin-gonic/gin"
+	db "m1thrandir225/lab-2-3-4/db/sqlc"
+	"net/http"
+	"time"
 )
 
-type createAccessRequestRequest struct {
-	ResourceID int64  `json:"resource_id" binding:"required"`
-	Reason     string `json:"reason" binding:"required"`
-	Duration   string `json:"duration" binding:"required"` // e.g., "24h", "48h"
-}
+const (
+	accessDuration = 15 * time.Minute
+)
 
-type accessRequestResponse struct {
-	ID         int64     `json:"id"`
-	UserID     int64     `json:"user_id"`
-	ResourceID int64     `json:"resource_id"`
-	Status     string    `json:"status"`
-	Reason     string    `json:"reason"`
-	ExpiresAt  time.Time `json:"expires_at"`
-	CreatedAt  time.Time `json:"created_at"`
+type requestAccessRequest struct {
+	Reason string `json:"reason" binding:"required"`
 }
 
 func (server *Server) requestAccess(ctx *gin.Context) {
-	var req createAccessRequestRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(400, errorResponse(err))
+	var uriId UriId
+	if err := ctx.ShouldBindUri(&uriId); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	payload := ctx.MustGet(authorizationPayloadKey).(*auth.Claims)
+	var req requestAccessRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	}
 
-	// Parse duration
-	duration, err := time.ParseDuration(req.Duration)
+	payload, err := GetPayloadFromContext(ctx)
 	if err != nil {
-		ctx.JSON(400, errorResponse(errors.New("invalid duration format")))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	user, err := server.store.GetUserByEmail(ctx, payload.Email)
 	if err != nil {
-		ctx.JSON(400, errorResponse(err))
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	// Create access request
+
+	// Get resource to check organization
+	resource, err := server.store.GetResource(ctx, uriId.ID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(errors.New("resource not found")))
+		return
+	}
+
+	// Get user's role in the organization
+	userOrg, err := server.store.GetUserOrganization(ctx, db.GetUserOrganizationParams{
+		UserID: user.ID,
+		OrgID:  resource.OrgID,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusForbidden, errorResponse(errors.New("not a member of organization")))
+		return
+	}
+
+	// Check role permissions for the resource
+	permissions, err := server.store.GetRolePermissions(ctx, db.GetRolePermissionsParams{
+		RoleID:     userOrg.RoleID,
+		ResourceID: uriId.ID,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusForbidden, errorResponse(errors.New("no permissions defined")))
+		return
+	}
+
+	if !permissions.CanRead {
+		ctx.JSON(http.StatusForbidden, errorResponse(errors.New("insufficient permissions")))
+		return
+	}
+
 	accessRequest, err := server.store.CreateAccessRequest(ctx, db.CreateAccessRequestParams{
 		UserID:     user.ID,
-		ResourceID: req.ResourceID,
-		Status:     "pending",
+		ResourceID: uriId.ID,
+		Status:     "approved",
 		Reason:     req.Reason,
-		ExpiresAt:  time.Now().Add(duration),
+		ExpiresAt:  time.Now().Add(accessDuration),
 	})
 	if err != nil {
-		ctx.JSON(500, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(201, accessRequestResponse{
-		ID:         accessRequest.ID,
-		UserID:     accessRequest.UserID,
-		ResourceID: accessRequest.ResourceID,
-		Status:     accessRequest.Status,
-		Reason:     accessRequest.Reason,
-		ExpiresAt:  accessRequest.ExpiresAt,
-		CreatedAt:  accessRequest.CreatedAt,
+	ctx.JSON(http.StatusCreated, gin.H{
+		"access_id":  accessRequest.ID,
+		"status":     "approved",
+		"expires_at": accessRequest.ExpiresAt,
+		"duration":   "15 minutes",
 	})
 }
 
-// Evaluate and update access request (Admin/Moderator only)
-func (server *Server) evaluateAccessRequest(ctx *gin.Context) {
-	type evaluateRequest struct {
-		Status string `json:"status" binding:"required,oneof=approved rejected"`
-	}
-
-	var req evaluateRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(400, errorResponse(err))
+func (server *Server) checkAccess(ctx *gin.Context) {
+	var uriId UriId
+	if err := ctx.ShouldBindUri(&uriId); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	requestIDStr := ctx.Param("request_id")
-
-	requestID, err := strconv.ParseInt(requestIDStr, 10, 64)
+	payload, err := GetPayloadFromContext(ctx)
 	if err != nil {
-		ctx.JSON(400, errorResponse(err))
-		return
-	}
-
-	err = server.store.UpdateAccessRequestStatus(ctx, db.UpdateAccessRequestStatusParams{
-		ID:     requestID,
-		Status: req.Status,
-	})
-	if err != nil {
-		ctx.JSON(500, errorResponse(err))
-		return
-	}
-
-	ctx.Status(200)
-}
-
-// List pending access requests (Admin/Moderator only)
-func (server *Server) listPendingAccessRequests(ctx *gin.Context) {
-	orgIDStr := ctx.Param("org_id")
-
-	orgID, err := strconv.ParseInt(orgIDStr, 10, 64)
-	if err != nil {
-		ctx.JSON(400, errorResponse(err))
-		return
-	}
-
-	requests, err := server.store.ListPendingAccessRequests(ctx, orgID)
-	if err != nil {
-		ctx.JSON(500, errorResponse(err))
-		return
-	}
-
-	ctx.JSON(200, requests)
-}
-
-// List user's access requests
-func (server *Server) listUserAccessRequests(ctx *gin.Context) {
-	payload := ctx.MustGet(authorizationPayloadKey).(*auth.Claims)
-
-	user, err := server.store.GetUserByEmail(ctx, payload.Email)
-	if err != nil {
-		ctx.JSON(400, errorResponse(err))
-		return
-	}
-
-	requests, err := server.store.ListUserAccessRequests(ctx, user.ID)
-	if err != nil {
-		ctx.JSON(500, errorResponse(err))
-		return
-	}
-
-	ctx.JSON(200, requests)
-}
-
-// Check active access
-func (server *Server) checkActiveAccess(ctx *gin.Context) {
-	payload := ctx.MustGet(authorizationPayloadKey).(*auth.Claims)
-	resourceIDStr := ctx.Param("resource_id")
-
-	resourceID, err := strconv.ParseInt(resourceIDStr, 10, 64)
-	if err != nil {
-		ctx.JSON(400, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	user, err := server.store.GetUserByEmail(ctx, payload.Email)
 	if err != nil {
-		ctx.JSON(400, errorResponse(err))
+		ctx.JSON(http.StatusForbidden, errorResponse(err))
 		return
 	}
 
 	access, err := server.store.GetActiveAccessRequest(ctx, db.GetActiveAccessRequestParams{
 		UserID:     user.ID,
-		ResourceID: resourceID,
+		ResourceID: uriId.ID,
 		ExpiresAt:  time.Now(),
 	})
+
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			ctx.JSON(404, gin.H{"has_access": false})
-			return
-		}
-		ctx.JSON(500, errorResponse(err))
+		remainingTime := time.Duration(0)
+		ctx.JSON(http.StatusOK, gin.H{
+			"has_access":     false,
+			"message":        "No active access. Please request new access.",
+			"time_remaining": remainingTime.String(),
+		})
 		return
 	}
 
-	ctx.JSON(200, gin.H{
-		"has_access": true,
-		"expires_at": access.ExpiresAt,
+	remainingTime := time.Until(access.ExpiresAt).Round(time.Second)
+	ctx.JSON(http.StatusOK, gin.H{
+		"has_access":     true,
+		"expires_at":     access.ExpiresAt,
+		"time_remaining": remainingTime.String(),
 	})
+}
+
+func (server *Server) listActiveAccess(ctx *gin.Context) {
+	payload, err := GetPayloadFromContext(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	
+	user, err := server.store.GetUserByEmail(ctx, payload.Email)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	activeAccess, err := server.store.ListActiveUserAccess(ctx, db.ListActiveUserAccessParams{
+		UserID:    user.ID,
+		ExpiresAt: time.Now(),
+	})
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Add remaining time for each access
+	var response []gin.H
+	for _, access := range activeAccess {
+		remainingTime := time.Until(access.ExpiresAt).Round(time.Second)
+		response = append(response, gin.H{
+			"access_id":      access.ID,
+			"resource_id":    access.ResourceID,
+			"resource_name":  access.ResourceName,
+			"expires_at":     access.ExpiresAt,
+			"time_remaining": remainingTime.String(),
+		})
+	}
+
+	ctx.JSON(http.StatusOK, response)
 }

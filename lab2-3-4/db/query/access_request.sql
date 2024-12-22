@@ -12,14 +12,6 @@ SELECT *
 FROM access_requests
 WHERE id = ?;
 
--- name: GetActiveAccessRequest :one
-SELECT *
-FROM access_requests
-WHERE user_id = ?
-  AND resource_id = ?
-  AND expires_at > ?
-  AND status = 'approved';
-
 -- name: UpdateAccessRequestStatus :exec
 UPDATE access_requests
 SET status = ?
@@ -38,3 +30,27 @@ FROM access_requests ar
          JOIN resources r ON ar.resource_id = r.id
 WHERE ar.status = 'pending' AND r.org_id = ?
 ORDER BY ar.created_at DESC;
+
+-- name: ListActiveUserAccess :many
+SELECT
+    ar.*,
+    r.name as resource_name
+FROM access_requests ar
+         JOIN resources r ON ar.resource_id = r.id
+WHERE ar.user_id = ?
+  AND ar.expires_at > ?
+  AND ar.status = 'approved'
+ORDER BY ar.expires_at;
+
+-- name: RevokeExpiredAccess :exec
+UPDATE access_requests
+SET status = 'expired'
+WHERE expires_at < current_time
+  AND status = 'approved';
+
+-- name: GetActiveAccessRequest :one
+SELECT * FROM access_requests
+WHERE user_id = ?
+  AND resource_id = ?
+  AND expires_at > ?
+  AND status = 'approved';

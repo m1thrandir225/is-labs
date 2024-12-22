@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createRolePermission = `-- name: CreateRolePermission :one
@@ -21,11 +20,11 @@ RETURNING id, role_id, resource_id, can_read, can_write, can_delete, created_at
 `
 
 type CreateRolePermissionParams struct {
-	RoleID     int64        `json:"role_id"`
-	ResourceID int64        `json:"resource_id"`
-	CanRead    sql.NullBool `json:"can_read"`
-	CanWrite   sql.NullBool `json:"can_write"`
-	CanDelete  sql.NullBool `json:"can_delete"`
+	RoleID     int64 `json:"role_id"`
+	ResourceID int64 `json:"resource_id"`
+	CanRead    bool  `json:"can_read"`
+	CanWrite   bool  `json:"can_write"`
+	CanDelete  bool  `json:"can_delete"`
 }
 
 func (q *Queries) CreateRolePermission(ctx context.Context, arg CreateRolePermissionParams) (RolePermission, error) {
@@ -87,11 +86,11 @@ RETURNING id, role_id, resource_id, can_read, can_write, can_delete, created_at
 `
 
 type UpdateRolePermissionsParams struct {
-	CanRead    sql.NullBool `json:"can_read"`
-	CanWrite   sql.NullBool `json:"can_write"`
-	CanDelete  sql.NullBool `json:"can_delete"`
-	RoleID     int64        `json:"role_id"`
-	ResourceID int64        `json:"resource_id"`
+	CanRead    bool  `json:"can_read"`
+	CanWrite   bool  `json:"can_write"`
+	CanDelete  bool  `json:"can_delete"`
+	RoleID     int64 `json:"role_id"`
+	ResourceID int64 `json:"resource_id"`
 }
 
 func (q *Queries) UpdateRolePermissions(ctx context.Context, arg UpdateRolePermissionsParams) (RolePermission, error) {

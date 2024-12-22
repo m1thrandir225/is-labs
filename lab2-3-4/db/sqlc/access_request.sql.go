@@ -71,8 +71,7 @@ func (q *Queries) GetAccessRequest(ctx context.Context, id int64) (AccessRequest
 }
 
 const getActiveAccessRequest = `-- name: GetActiveAccessRequest :one
-SELECT id, user_id, resource_id, status, reason, expires_at, created_at
-FROM access_requests
+SELECT id, user_id, resource_id, status, reason, expires_at, created_at FROM access_requests
 WHERE user_id = ?
   AND resource_id = ?
   AND expires_at > ?
@@ -98,6 +97,66 @@ func (q *Queries) GetActiveAccessRequest(ctx context.Context, arg GetActiveAcces
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const listActiveUserAccess = `-- name: ListActiveUserAccess :many
+SELECT
+    ar.id, ar.user_id, ar.resource_id, ar.status, ar.reason, ar.expires_at, ar.created_at,
+    r.name as resource_name
+FROM access_requests ar
+         JOIN resources r ON ar.resource_id = r.id
+WHERE ar.user_id = ?
+  AND ar.expires_at > ?
+  AND ar.status = 'approved'
+ORDER BY ar.expires_at
+`
+
+type ListActiveUserAccessParams struct {
+	UserID    int64     `json:"user_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+type ListActiveUserAccessRow struct {
+	ID           int64     `json:"id"`
+	UserID       int64     `json:"user_id"`
+	ResourceID   int64     `json:"resource_id"`
+	Status       string    `json:"status"`
+	Reason       string    `json:"reason"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	CreatedAt    time.Time `json:"created_at"`
+	ResourceName string    `json:"resource_name"`
+}
+
+func (q *Queries) ListActiveUserAccess(ctx context.Context, arg ListActiveUserAccessParams) ([]ListActiveUserAccessRow, error) {
+	rows, err := q.db.QueryContext(ctx, listActiveUserAccess, arg.UserID, arg.ExpiresAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListActiveUserAccessRow{}
+	for rows.Next() {
+		var i ListActiveUserAccessRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ResourceID,
+			&i.Status,
+			&i.Reason,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+			&i.ResourceName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listPendingAccessRequests = `-- name: ListPendingAccessRequests :many
@@ -190,6 +249,18 @@ func (q *Queries) ListUserAccessRequests(ctx context.Context, userID int64) ([]A
 		return nil, err
 	}
 	return items, nil
+}
+
+const revokeExpiredAccess = `-- name: RevokeExpiredAccess :exec
+UPDATE access_requests
+SET status = 'expired'
+WHERE expires_at < current_time
+  AND status = 'approved'
+`
+
+func (q *Queries) RevokeExpiredAccess(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, revokeExpiredAccess)
+	return err
 }
 
 const updateAccessRequestStatus = `-- name: UpdateAccessRequestStatus :exec

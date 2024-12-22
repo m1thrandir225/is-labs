@@ -150,3 +150,27 @@ func (q *Queries) ListOrganizationRoles(ctx context.Context, orgID int64) ([]Rol
 	}
 	return items, nil
 }
+
+const updateRole = `-- name: UpdateRole :one
+UPDATE roles
+SET name = ?
+WHERE id = ?
+RETURNING id, name, org_id, created_at
+`
+
+type UpdateRoleParams struct {
+	Name string `json:"name"`
+	ID   int64  `json:"id"`
+}
+
+func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error) {
+	row := q.db.QueryRowContext(ctx, updateRole, arg.Name, arg.ID)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.OrgID,
+		&i.CreatedAt,
+	)
+	return i, err
+}

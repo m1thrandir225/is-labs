@@ -15,6 +15,13 @@ FROM roles
 WHERE org_id = ?
 ORDER BY created_at;
 
+-- name: UpdateRole :one
+UPDATE roles
+SET name = ?
+WHERE id = ?
+RETURNING *;
+
+
 -- name: GetUserRole :one
 SELECT r.name as role_name
 FROM user_organizations uo

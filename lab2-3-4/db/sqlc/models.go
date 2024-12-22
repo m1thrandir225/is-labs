@@ -46,13 +46,13 @@ type Role struct {
 }
 
 type RolePermission struct {
-	ID         int64        `json:"id"`
-	RoleID     int64        `json:"role_id"`
-	ResourceID int64        `json:"resource_id"`
-	CanRead    sql.NullBool `json:"can_read"`
-	CanWrite   sql.NullBool `json:"can_write"`
-	CanDelete  sql.NullBool `json:"can_delete"`
-	CreatedAt  time.Time    `json:"created_at"`
+	ID         int64     `json:"id"`
+	RoleID     int64     `json:"role_id"`
+	ResourceID int64     `json:"resource_id"`
+	CanRead    bool      `json:"can_read"`
+	CanWrite   bool      `json:"can_write"`
+	CanDelete  bool      `json:"can_delete"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type User struct {

@@ -1,10 +1,11 @@
 package api
 
 import (
+	"database/sql"
 	"errors"
 	"github.com/gin-gonic/gin"
 	db "m1thrandir225/lab-2-3-4/db/sqlc"
-	"strconv"
+	"net/http"
 	"time"
 )
 
@@ -20,31 +21,44 @@ type resourceResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type resourcePermissionRequest struct {
+	RoleID    int64 `json:"role_id" binding:"required"`
+	CanRead   bool  `json:"can_read"`
+	CanWrite  bool  `json:"can_write"`
+	CanDelete bool  `json:"can_delete"`
+}
+
+type getResourcePermissionRequest struct {
+	RoleID int64 `json:"role_id" binding:"required"`
+}
+
+type updateResourceRequest struct {
+	Name string `json:"name"`
+}
+
 // Create resource (Admin/Moderator only)
 func (server *Server) createResource(ctx *gin.Context) {
+	var uriId UriId
+	if err := ctx.ShouldBindUri(&uriId); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	var req createResourceRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(400, errorResponse(err))
 		return
 	}
 
-	orgIDStr := ctx.Param("org_id")
-	orgID, err := strconv.ParseInt(orgIDStr, 10, 64)
-	if err != nil {
-		ctx.JSON(400, errorResponse(err))
-		return
-	}
-
 	resource, err := server.store.CreateResource(ctx, db.CreateResourceParams{
 		Name:  req.Name,
-		OrgID: orgID,
+		OrgID: uriId.ID,
 	})
 	if err != nil {
-		ctx.JSON(500, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(201, resourceResponse{
+	ctx.JSON(http.StatusCreated, resourceResponse{
 		ID:        resource.ID,
 		Name:      resource.Name,
 		OrgID:     resource.OrgID,
@@ -52,22 +66,57 @@ func (server *Server) createResource(ctx *gin.Context) {
 	})
 }
 
-// Get single resource
+type orgIdResourceIdRequest struct {
+	OrgId      int64 `uri:"org_id" binding:"required"`
+	ResourceID int64 `uri:"resource_id" binding:"required"`
+}
+
 func (server *Server) getResource(ctx *gin.Context) {
-	resourceIDStr := ctx.Param("resource_id")
-	resourceID, err := strconv.ParseInt(resourceIDStr, 10, 64)
-	if err != nil {
-		ctx.JSON(400, errorResponse(err))
+	var uriId orgIdResourceIdRequest
+	if err := ctx.ShouldBindUri(&uriId); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	resource, err := server.store.GetResource(ctx, resourceID)
+	payload, err := GetPayloadFromContext(ctx)
 	if err != nil {
-		ctx.JSON(404, errorResponse(errors.New("resource not found")))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(200, resourceResponse{
+	user, err := server.store.GetUserByEmail(ctx, payload.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	access, err := server.store.GetActiveAccessRequest(ctx, db.GetActiveAccessRequestParams{
+		UserID:     user.ID,
+		ResourceID: uriId.ResourceID,
+		ExpiresAt:  time.Now(),
+	})
+
+	if err != nil {
+		ctx.JSON(500, errorResponse(err))
+		return
+	}
+
+	if time.Now().After(access.ExpiresAt) {
+		ctx.JSON(http.StatusForbidden, errorResponse(errors.New("access expired, please request a new access request")))
+		return
+	}
+
+	resource, err := server.store.GetResource(ctx, uriId.ResourceID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(errors.New("resource not found")))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resourceResponse{
 		ID:        resource.ID,
 		Name:      resource.Name,
 		OrgID:     resource.OrgID,
@@ -77,16 +126,18 @@ func (server *Server) getResource(ctx *gin.Context) {
 
 // List organization resources
 func (server *Server) listOrganizationResources(ctx *gin.Context) {
-	orgIDStr := ctx.Param("org_id")
-	orgID, err := strconv.ParseInt(orgIDStr, 10, 64)
-	if err != nil {
-		ctx.JSON(400, errorResponse(err))
+	var uriId UriId
+	if err := ctx.ShouldBindUri(&uriId); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	resources, err := server.store.ListOrganizationResources(ctx, orgID)
+	resources, err := server.store.ListOrganizationResources(ctx, uriId.ID)
 	if err != nil {
-		ctx.JSON(500, errorResponse(err))
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
@@ -100,5 +151,116 @@ func (server *Server) listOrganizationResources(ctx *gin.Context) {
 		})
 	}
 
-	ctx.JSON(200, response)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (server *Server) setResourcePermissions(ctx *gin.Context) {
+	var uriId orgIdResourceIdRequest
+	if err := ctx.ShouldBindUri(&uriId); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	var req resourcePermissionRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	permissions, err := server.store.CreateRolePermission(ctx, db.CreateRolePermissionParams{
+		RoleID:     req.RoleID,
+		ResourceID: uriId.ResourceID,
+		CanRead:    req.CanRead,
+		CanWrite:   req.CanWrite,
+		CanDelete:  req.CanDelete,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, permissions)
+}
+
+func (server *Server) getResourcePermissions(ctx *gin.Context) {
+	var uriId orgIdResourceIdRequest
+	if err := ctx.ShouldBindUri(&uriId); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	var req getResourcePermissionRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	permissions, err := server.store.GetRolePermissions(ctx, db.GetRolePermissionsParams{
+		RoleID:     req.RoleID,
+		ResourceID: uriId.ResourceID,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, permissions)
+}
+
+func (server *Server) updateResource(ctx *gin.Context) {
+	var uriId orgIdResourceIdRequest
+	if err := ctx.ShouldBindUri(&uriId); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	var req updateResourceRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	resource, err := server.store.UpdateResource(ctx, db.UpdateResourceParams{
+		ID:   uriId.ResourceID,
+		Name: req.Name,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resource)
+}
+
+func (server *Server) deleteResource(ctx *gin.Context) {
+	var uriId orgIdResourceIdRequest
+	if err := ctx.ShouldBindUri(&uriId); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	err := server.store.DeleteResource(ctx, uriId.ResourceID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }

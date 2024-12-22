@@ -20,3 +20,8 @@ ORDER BY created_at;
 -- name: RemoveUserFromOrganization :exec
 DELETE FROM user_organizations
 WHERE org_id = ? AND user_id = ?;
+
+-- name: UpdateUserOrganizationRole :exec
+UPDATE user_organizations
+SET role_id = ?
+WHERE user_id = ? AND org_id = ?

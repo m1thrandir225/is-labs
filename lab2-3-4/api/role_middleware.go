@@ -2,7 +2,7 @@ package api
 
 import (
 	"errors"
-	"m1thrandir225/lab-2-3-4/auth"
+	"log"
 	db "m1thrandir225/lab-2-3-4/db/sqlc"
 	"net/http"
 	"strconv"
@@ -12,9 +12,14 @@ import (
 
 func (server *Server) requireRole(roles ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		payload := ctx.MustGet(authorizationPayloadKey).(*auth.Claims)
+		payload, err := GetPayloadFromContext(ctx)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		}
 
-		orgIDStr := ctx.Param("org_id")
+		orgIDStr := ctx.Param("id")
+		log.Println(orgIDStr)
+
 		orgID, err := strconv.ParseInt(orgIDStr, 10, 64)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusForbidden, errorResponse(errors.New("unauthorized")))
@@ -43,7 +48,8 @@ func (server *Server) requireRole(roles ...string) gin.HandlerFunc {
 			}
 		}
 
-		ctx.AbortWithStatusJSON(403, errorResponse(errors.New("insufficient permissions")))
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		ctx.Abort()
 	}
 }
 
