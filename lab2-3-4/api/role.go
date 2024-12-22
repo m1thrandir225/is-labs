@@ -7,8 +7,7 @@ import (
 )
 
 type createRoleRequest struct {
-	Name        string `json:"name" binding:"required"`
-	Description string `json:"description"`
+	Name string `json:"name" binding:"required"`
 }
 
 func (server *Server) createRole(ctx *gin.Context) {
@@ -37,8 +36,8 @@ func (server *Server) createRole(ctx *gin.Context) {
 }
 
 type orgRoleUriIdReqest struct {
-	OrgId  int64 `uri:"orgId" binding:"required"`
-	RoleId int64 `uri:"roleId" binding:"required"`
+	OrgId  int64 `uri:"id" binding:"required"`
+	RoleId int64 `uri:"role_id" binding:"required"`
 }
 
 func (server *Server) updateRole(ctx *gin.Context) {

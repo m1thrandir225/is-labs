@@ -53,6 +53,7 @@ SELECT id, role_id, resource_id, can_read, can_write, can_delete, created_at
 FROM role_permissions
 WHERE role_id = ?
   AND resource_id = ?
+ORDER BY role_id
 `
 
 type GetRolePermissionsParams struct {

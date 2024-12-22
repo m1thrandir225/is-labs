@@ -10,8 +10,7 @@ import (
 )
 
 type createResourceRequest struct {
-	Name        string `json:"name" binding:"required"`
-	Description string `json:"description"`
+	Name string `json:"name" binding:"required"`
 }
 
 type resourceResponse struct {
@@ -29,7 +28,7 @@ type resourcePermissionRequest struct {
 }
 
 type getResourcePermissionRequest struct {
-	RoleID int64 `json:"role_id" binding:"required"`
+	RoleID int64 `json:"resource_id" binding:"required"`
 }
 
 type updateResourceRequest struct {
@@ -67,8 +66,14 @@ func (server *Server) createResource(ctx *gin.Context) {
 }
 
 type orgIdResourceIdRequest struct {
-	OrgId      int64 `uri:"org_id" binding:"required"`
+	OrgId      int64 `uri:"id" binding:"required"`
 	ResourceID int64 `uri:"resource_id" binding:"required"`
+}
+
+type orgIdResourceIdRoleIdRequest struct {
+	OrgId      int64 `uri:"id" binding:"required"`
+	ResourceID int64 `uri:"resource_id" binding:"required"`
+	RoleID     int64 `uri:"role_id" binding:"required"`
 }
 
 func (server *Server) getResource(ctx *gin.Context) {
@@ -80,12 +85,16 @@ func (server *Server) getResource(ctx *gin.Context) {
 
 	payload, err := GetPayloadFromContext(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 
 	user, err := server.store.GetUserByEmail(ctx, payload.Email)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -97,7 +106,11 @@ func (server *Server) getResource(ctx *gin.Context) {
 	})
 
 	if err != nil {
-		ctx.JSON(500, errorResponse(err))
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusForbidden, errorResponse(errors.New("access expired, please request a new access request")))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
@@ -188,20 +201,14 @@ func (server *Server) setResourcePermissions(ctx *gin.Context) {
 }
 
 func (server *Server) getResourcePermissions(ctx *gin.Context) {
-	var uriId orgIdResourceIdRequest
+	var uriId orgIdResourceIdRoleIdRequest
 	if err := ctx.ShouldBindUri(&uriId); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	var req getResourcePermissionRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
 	permissions, err := server.store.GetRolePermissions(ctx, db.GetRolePermissionsParams{
-		RoleID:     req.RoleID,
+		RoleID:     uriId.RoleID,
 		ResourceID: uriId.ResourceID,
 	})
 	if err != nil {

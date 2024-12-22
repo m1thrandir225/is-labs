@@ -43,8 +43,8 @@ func (server *Server) initializeRoutes() {
 	authRoutes.DELETE("/organizations/:id/resources/:resource_id", server.requireAdmin(), server.deleteResource) //okay
 
 	// Resource permissions (Admin/Moderator only)
-	authRoutes.POST("/organizations/:id/resources/:resource_id/permissions", server.requireAdmin(), server.setResourcePermissions) //okay
-	authRoutes.GET("/organizations/:id/resources/:resource_id/permissions", server.requireAdmin(), server.getResourcePermissions)  //okay
+	authRoutes.POST("/organizations/:id/resources/:resource_id/permissions", server.requireAdmin(), server.setResourcePermissions)         //okay
+	authRoutes.GET("/organizations/:id/resources/:resource_id/permissions/:role_id", server.requireAdmin(), server.getResourcePermissions) //okay
 
 	// Just-in-time access management
 	authRoutes.POST("/resources/:id/access", server.requestAccess) //okay // Request 15-min access

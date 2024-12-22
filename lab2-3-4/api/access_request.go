@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"log"
 	db "m1thrandir225/lab-2-3-4/db/sqlc"
 	"net/http"
 	"time"
@@ -49,10 +50,10 @@ func (server *Server) requestAccess(ctx *gin.Context) {
 	resource, err := server.store.GetResource(ctx, uriId.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			ctx.JSON(http.StatusNotFound, errorResponse(errors.New("resource not found")))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(errors.New("resource not found")))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
@@ -61,6 +62,7 @@ func (server *Server) requestAccess(ctx *gin.Context) {
 		UserID: user.ID,
 		OrgID:  resource.OrgID,
 	})
+	log.Println(userOrg.RoleID)
 	if err != nil {
 		ctx.JSON(http.StatusForbidden, errorResponse(errors.New("not a member of organization")))
 		return
@@ -71,8 +73,13 @@ func (server *Server) requestAccess(ctx *gin.Context) {
 		RoleID:     userOrg.RoleID,
 		ResourceID: uriId.ID,
 	})
+	log.Println(permissions)
 	if err != nil {
-		ctx.JSON(http.StatusForbidden, errorResponse(errors.New("no permissions defined")))
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(errors.New("no permissions defined")))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
@@ -150,7 +157,7 @@ func (server *Server) listActiveAccess(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	
+
 	user, err := server.store.GetUserByEmail(ctx, payload.Email)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))

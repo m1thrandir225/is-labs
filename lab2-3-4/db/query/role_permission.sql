@@ -11,7 +11,8 @@ RETURNING *;
 SELECT *
 FROM role_permissions
 WHERE role_id = ?
-  AND resource_id = ?;
+  AND resource_id = ?
+ORDER BY role_id;
 
 -- name: UpdateRolePermissions :one
 UPDATE role_permissions
