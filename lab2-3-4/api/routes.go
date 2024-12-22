@@ -2,32 +2,35 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
-	"m1thrandir225/lab-2-3-4/dto"
 )
 
 func (server *Server) initializeRoutes() {
 	router := gin.Default()
 
 	v1 := router.Group("/api/v1")
-	protectedRoutes := v1.Group("/")
-	protectedRoutes.Use(authMiddleware(server.tokenMaker))
 
-	adminRoutes := protectedRoutes.Group("/admin")
-	adminRoutes.Use(roleMiddleware(dto.RoleAdmin, server.store))
+	v1.POST("/login", server.login)
+	v1.POST("/register", server.register)
+	v1.POST("/verify-2fa", server.verifyOTP)
 
-	moderatorRoutes := protectedRoutes.Group("/moderator")
-	moderatorRoutes.Use(roleMiddleware(dto.RoleModerator, server.store))
+	// Protected routes
+	authRoutes := v1.Group("/").Use(authMiddleware(server.tokenMaker))
 
-	v1.POST("/login", server.Login)
-	v1.POST("/register", server.Register)
-	v1.POST("/refresh-token", server.RefreshToken)
+	// Resource management (Admin/Moderator only)
+	authRoutes.POST("/organizations/:org_id/resources", server.requireAdmin(), server.createResource)
 
-	//Verify 2-fa route
-	v1.POST("/verify-2fa", server.VerifyOTP)
+	// Resource access (all authenticated users)
+	authRoutes.GET("/organizations/:org_id/resources", server.listOrganizationResources)
+	authRoutes.GET("/organizations/:org_id/resources/:resource_id", server.getResource)
 
-	protectedRoutes.GET("/home", server.Home)
-	adminRoutes.POST("/get-role", server.GetUserRole)
-	moderatorRoutes.POST("/update-role", server.UpdateUserRole)
+	// Access request workflow
+	authRoutes.POST("/access-requests", server.requestAccess)                       // Request access
+	authRoutes.GET("/access-requests/me", server.listUserAccessRequests)            // List own requests
+	authRoutes.GET("/access-requests/check/:resource_id", server.checkActiveAccess) // Check active access
+
+	// Access request management (Admin/Moderator only)
+	authRoutes.GET("/organizations/:org_id/access-requests", server.requireAdmin(), server.listPendingAccessRequests)
+	authRoutes.PUT("/access-requests/:request_id", server.requireAdmin(), server.evaluateAccessRequest)
 
 	server.router = router
 }

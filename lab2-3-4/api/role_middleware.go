@@ -1,39 +1,56 @@
 package api
 
 import (
-	"database/sql"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"m1thrandir225/lab-2-3-4/auth"
 	db "m1thrandir225/lab-2-3-4/db/sqlc"
-	"m1thrandir225/lab-2-3-4/dto"
 	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
-func roleMiddleware(role dto.Role, store db.Store) gin.HandlerFunc {
+func (server *Server) requireRole(roles ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		payload, ok := ctx.Get(authorizationPayloadKey)
-		if !ok {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(errors.New("unauthorized")))
-		}
+		payload := ctx.MustGet(authorizationPayloadKey).(*auth.Claims)
 
-		userPayload, ok := payload.(*auth.Claims)
-		if !ok {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(errors.New("unauthorized")))
-		}
-
-		user, err := store.GetUserByEmail(ctx, userPayload.Email)
-
+		orgIDStr := ctx.Param("org_id")
+		orgID, err := strconv.ParseInt(orgIDStr, 10, 64)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				ctx.AbortWithStatusJSON(http.StatusNotFound, errorResponse(errors.New("the user was not found")))
-			}
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, errorResponse(errors.New("there was an internal server error")))
+			ctx.AbortWithStatusJSON(http.StatusForbidden, errorResponse(errors.New("unauthorized")))
+			return
 		}
 
-		if user.Role != role {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, errorResponse(errors.New("you don't have permission to access this resource")))
+		user, err := server.store.GetUserByEmail(ctx, payload.Email)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, errorResponse(errors.New("unauthorized")))
+			return
 		}
-		ctx.Next()
+
+		userRole, err := server.store.GetUserRole(ctx, db.GetUserRoleParams{
+			UserID: user.ID,
+			OrgID:  orgID,
+		})
+		if err != nil {
+			ctx.AbortWithStatusJSON(403, errorResponse(errors.New("unauthorized")))
+			return
+		}
+
+		for _, role := range roles {
+			if userRole == role {
+				ctx.Next()
+				return
+			}
+		}
+
+		ctx.AbortWithStatusJSON(403, errorResponse(errors.New("insufficient permissions")))
 	}
+}
+
+func (server *Server) requireModerator() gin.HandlerFunc {
+	return server.requireRole("moderator")
+}
+
+func (server *Server) requireAdmin() gin.HandlerFunc {
+	return server.requireRole("admin", "moderator")
 }
