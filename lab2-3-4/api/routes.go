@@ -21,39 +21,39 @@ func (server *Server) initializeRoutes() {
 	authRoutes := v1.Group("/").Use(authMiddleware(server.tokenMaker))
 
 	// Organization management
-	authRoutes.POST("/organizations", server.createOrganization)   // okay
-	authRoutes.GET("/organizations", server.listUserOrganizations) //okay
-	authRoutes.GET("/organizations/:id", server.getOrganization)   // okay
+	authRoutes.POST("/organizations", server.createOrganization)
+	authRoutes.GET("/organizations", server.listUserOrganizations)
+	authRoutes.GET("/organizations/:id", server.getOrganization)
 
 	// Organization user management (Admin/Moderator only)
-	authRoutes.POST("/organizations/:id/users", server.requireAdmin(), server.addUserToOrganization)                 // okay
-	authRoutes.DELETE("/organizations/:id/users/:user_id", server.requireAdmin(), server.removeUserFromOrganization) //okay
-	authRoutes.PUT("/organizations/:id/users/:user_id/role", server.requireAdmin(), server.updateUserRole)           //okay
+	authRoutes.POST("/organizations/:id/users", server.requireAdmin(), server.addUserToOrganization)
+	authRoutes.DELETE("/organizations/:id/users/:user_id", server.requireAdmin(), server.removeUserFromOrganization)
+	authRoutes.PUT("/organizations/:id/users/:user_id/role", server.requireModerator(), server.updateUserRole)
 
 	// Role management (Admin/Moderator only)
-	authRoutes.GET("/organizations/:id/roles", server.requireAdmin(), server.listOrganizationRoles) //okay
-	authRoutes.POST("/organizations/:id/roles", server.requireAdmin(), server.createRole)           //okays
-	authRoutes.PUT("/organizations/:id/roles/:role_id", server.requireAdmin(), server.updateRole)   //okay
+	authRoutes.GET("/organizations/:id/roles", server.requireAdmin(), server.listOrganizationRoles)
+	authRoutes.POST("/organizations/:id/roles", server.requireModerator(), server.createRole)
+	authRoutes.PUT("/organizations/:id/roles/:role_id", server.requireModerator(), server.updateRole)
 
 	// Resource management
-	authRoutes.POST("/organizations/:id/resources", server.requireAdmin(), server.createResource)                //okay
-	authRoutes.GET("/organizations/:id/resources", server.listOrganizationResources)                             //okay
-	authRoutes.GET("/organizations/:id/resources/:resource_id", server.getResource)                              //okay
-	authRoutes.PUT("/organizations/:id/resources/:resource_id", server.requireAdmin(), server.updateResource)    //okay
-	authRoutes.DELETE("/organizations/:id/resources/:resource_id", server.requireAdmin(), server.deleteResource) //okay
+	authRoutes.POST("/organizations/:id/resources", server.requireAdmin(), server.createResource)
+	authRoutes.GET("/organizations/:id/resources", server.listOrganizationResources)
+	authRoutes.GET("/organizations/:id/resources/:resource_id", server.getResource)
+	authRoutes.PUT("/organizations/:id/resources/:resource_id", server.requireAdmin(), server.updateResource)
+	authRoutes.DELETE("/organizations/:id/resources/:resource_id", server.requireAdmin(), server.deleteResource)
 
 	// Resource permissions (Admin/Moderator only)
-	authRoutes.POST("/organizations/:id/resources/:resource_id/permissions", server.requireAdmin(), server.setResourcePermissions)         //okay
-	authRoutes.GET("/organizations/:id/resources/:resource_id/permissions/:role_id", server.requireAdmin(), server.getResourcePermissions) //okay
+	authRoutes.POST("/organizations/:id/resources/:resource_id/permissions", server.requireAdmin(), server.setResourcePermissions)
+	authRoutes.GET("/organizations/:id/resources/:resource_id/permissions/:role_id", server.requireAdmin(), server.getResourcePermissions)
 
 	// Just-in-time access management
-	authRoutes.POST("/resources/:id/access", server.requestAccess) //okay // Request 15-min access
-	authRoutes.GET("/resources/:id/access", server.checkAccess)    //okay    // Check current access status
-	authRoutes.GET("/access/active", server.listActiveAccess)      //okay      // List all active access grants
+	authRoutes.POST("/resources/:id/access", server.requestAccess) // Request 15-min access
+	authRoutes.GET("/resources/:id/access", server.checkAccess)    // Check current access status
+	authRoutes.GET("/access/active", server.listActiveAccess)      // List all active access grants
 
 	// User profile and settings
-	authRoutes.GET("/me", server.getCurrentUser) //okay
-	authRoutes.PUT("/me", server.updateUser)     //okay
+	authRoutes.GET("/me", server.getCurrentUser)
+	authRoutes.PUT("/me", server.updateUser)
 	authRoutes.PUT("/me/password", server.updatePassword)
 
 	server.router = router
